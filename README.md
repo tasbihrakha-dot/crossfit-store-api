@@ -101,7 +101,7 @@ node server.js
 
 The API runs at:
 
-http://localhost:5000
+"http://localhost:5000"
 
 Make sure the database connection succeeds before testing the endpoints.
 
@@ -148,13 +148,15 @@ In Postman:
 
 The server verifies the token before allowing access to protected routes.
 
+Tokens issued by the registration and login routes expire after one hour.
+
 Role-Based Authorization
 
 The API uses role-based authorization to restrict access to certain operations.
 
-- Authenticated users can access routes permitted to their role.
-- Product listing and viewing a single product require a valid Bearer token and an allowed role.
-- Product creation, updating, and deletion require the role configured for those operations in the application.
+- Product listing and viewing a single product require a valid JWT token and the "user" or "admin" role.
+- Creating, updating, and deleting products require a valid JWT token and the "admin" role.
+- New users registered through the public registration route receive the "user" role by default.
 - Requests without a valid token may return "401 Unauthorized".
 - Requests from authenticated users without sufficient permissions may return "403 Forbidden".
 
@@ -162,7 +164,7 @@ Postman Examples
 
 Use the following base URL:
 
-http://localhost:5000
+"http://localhost:5000"
 
 1. Register a User
 
@@ -181,7 +183,11 @@ Example body
 
 Use a new email address when registering.
 
-Expected result: A successful response confirming registration. The exact response body depends on the implementation.
+Expected results:
+
+- "201 Created" when registration succeeds. The response contains a success message, a JWT token, and the user's "id", "name", "email", and "role".
+- "400 Bad Request" if required fields are missing or the password is shorter than 8 characters.
+- "409 Conflict" if the email address is already registered.
 
 2. Log In
 
@@ -197,7 +203,11 @@ Example body
   "password": "ExamplePassword123"
 }
 
-Expected result: A successful response containing a JWT token if the credentials are valid.
+Expected results:
+
+- "200 OK" when login succeeds. The response contains a success message, a JWT token, and the user's "id", "name", "email", and "role".
+- "400 Bad Request" if the email or password is missing.
+- "401 Unauthorized" if the email or password is incorrect.
 
 Use the returned token for protected requests.
 
@@ -207,11 +217,11 @@ Request
 
 GET /products
 
-Include a valid Bearer token for an authenticated user with an allowed role.
+Include a valid Bearer token for a user with the "user" or "admin" role.
 
-Expected result: "200 OK" with a JSON response containing the available products.
+Expected result: "200 OK" with a JSON array containing the available products.
 
-The exact JSON structure depends on the route implementation and database contents.
+The returned array depends on the products stored in the database.
 
 4. Get a Product by ID
 
@@ -219,16 +229,15 @@ Request
 
 GET /products/1
 
-Replace "1" with an existing product ID.
+Replace "1" with the target product ID.
 
-Include a valid Bearer token for an authenticated user with an allowed role.
+Include a valid Bearer token for a user with the "user" or "admin" role.
 
 Expected results:
 
 - "200 OK" if the product exists.
+- "400 Bad Request" if the product ID is invalid.
 - "404 Not Found" if the product does not exist.
-
-The exact status code for invalid IDs depends on the route implementation.
 
 5. Create a Product
 
@@ -242,17 +251,19 @@ Example body
 {
   "name": "Training Dumbbell",
   "price": 500,
-  "description": "Dumbbell for strength training"
+  "description": "Dumbbell for strength training",
+  "quantity": 10,
+  "category": "Equipment"
 }
 
-This body is an example only. Check "entities/product.js" and "productsRoutes.js" for the exact fields required by the current implementation.
+The "name" and "price" fields are required. The "description", "quantity", and "category" fields are optional in the product creation route. If "quantity" is omitted, it defaults to "0".
 
-Include a valid Bearer token for an account with the required role.
+Include a valid Bearer token for an account with the "admin" role.
 
 Expected results:
 
-- A success response if the request is valid and authorized.
-- "400 Bad Request" if required fields are missing or invalid.
+- "201 Created" when the product is created successfully. The response contains a success message and the saved product.
+- "400 Bad Request" if the name or price is invalid, or if the quantity is not a non-negative integer.
 - "401 Unauthorized" if authentication is missing or invalid.
 - "403 Forbidden" if the user does not have the required role.
 
@@ -265,13 +276,23 @@ Content-Type: application/json
 
 Replace "1" with the target product ID.
 
-Provide the fields required by the route in the JSON body.
+Example body
 
-Include a valid Bearer token with the required permissions.
+{
+  "name": "Updated Training Dumbbell",
+  "price": 550,
+  "quantity": 15
+}
 
-Expected result: A success response if the product exists and the request is valid and authorized.
+Include a valid Bearer token for an account with the "admin" role.
 
-The exact response status and body depend on the route implementation.
+Expected results:
+
+- "200 OK" when the product is updated successfully. The response contains a success message and the updated product.
+- "400 Bad Request" if the ID or provided field values are invalid.
+- "404 Not Found" if the product does not exist.
+- "401 Unauthorized" if authentication is missing or invalid.
+- "403 Forbidden" if the user does not have the required role.
 
 7. Delete a Product
 
@@ -281,11 +302,15 @@ DELETE /products/1
 
 Replace "1" with the target product ID.
 
-Include a valid Bearer token with the required permissions.
+Include a valid Bearer token for an account with the "admin" role.
 
-Expected result: A success response if deletion succeeds.
+Expected results:
 
-The exact response status and body depend on the route implementation.
+- "200 OK" when deletion succeeds. The response contains a success message.
+- "400 Bad Request" if the product ID is invalid.
+- "404 Not Found" if the product does not exist.
+- "401 Unauthorized" if authentication is missing or invalid.
+- "403 Forbidden" if the user does not have the required role.
 
 HTTP Status Codes
 
@@ -296,9 +321,10 @@ Status Code| Meaning
 "401"| Unauthorized
 "403"| Forbidden
 "404"| Not Found
+"409"| Conflict
 "500"| Internal Server Error
 
-Not every route necessarily returns every status code listed above. The actual status code and response body depend on the individual route implementation.
+The status codes returned by individual routes depend on the request and the route implementation. Unexpected server errors are passed to the centralized error handler.
 
 Error Handling
 
