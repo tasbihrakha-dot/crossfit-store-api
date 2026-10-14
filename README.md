@@ -1,179 +1,151 @@
 CrossFit Store API
 
-A RESTful API for managing a CrossFit store, built with Node.js, Express, TypeORM, and PostgreSQL.
+A RESTful API for managing CrossFit store products and users, built with Node.js, Express.js, TypeORM, and PostgreSQL.
 
 Features
 
 - User registration and login
 - Password hashing using bcrypt
 - JWT authentication
-- Role-based authorization
-- Product CRUD operations
-- Request validation
+- Role-based authorization ("user" and "admin")
+- Product listing, retrieval, creation, updating, and deletion
+- Input validation
 - Centralized error handling
-- PostgreSQL database integration
+- PostgreSQL database integration using TypeORM
 
-Technologies Used
+Technologies
 
 - Node.js
 - Express.js
-- TypeORM
 - PostgreSQL
+- TypeORM
 - JSON Web Tokens (JWT)
 - bcrypt
+- dotenv
 
 Project Structure
 
 crossfit-store-api/
 ├── entities/
-│   ├── user.js
-│   └── product.js
+│   ├── product.js
+│   └── user.js
 ├── middleware/
 │   ├── auth.middleware.js
 │   ├── error.middleware.js
 │   └── role.middleware.js
-├── authRoutes.js
-├── userRoutes.js
-├── productsRoutes.js
-├── db.js
-├── server.js
-├── package.json
-├── package-lock.json
+├── .env
 ├── .gitignore
-└── README.md
+├── authRoutes.js
+├── db.js
+├── productsRoutes.js
+├── server.js
+└── userRoutes.js
 
 Requirements
 
-Before running the project, install:
-
 - Node.js and npm
 - PostgreSQL
-- Postman (for API testing)
+- Postman (for testing the API)
 
 Installation and Setup
 
-1. Clone the Repository
+1. Clone the repository
 
-git clone https://github.com/tasbihrakha-dot/crossfit-store-api.git
+git clone https://github.com/tasbih.../crossfit-store-api.git
 cd crossfit-store-api
 
-2. Install Dependencies
+Replace the clone URL above with the repository's exact GitHub URL if needed.
+
+2. Install dependencies
 
 npm install
 
-3. Configure PostgreSQL
+3. Configure environment variables
 
-Create a PostgreSQL database named:
-
-crossfit-store
-
-The current database configuration is defined directly in "db.js".
-
-The application uses the following settings:
-
-- Database type: PostgreSQL
-- Host: "127.0.0.1"
-- Port: "5432"
-- Username: "postgres"
-- Database name: "crossfit-store"
-
-Make sure PostgreSQL is running and that the connection credentials in "db.js" match your local setup.
-
-Important: The current version does not read database connection settings from ".env".
-
-4. Configure Environment Variables
-
-Create a ".env" file in the project root.
-
-Add:
+Create a ".env" file in the project root:
 
 JWT_SECRET=your_private_jwt_secret
 
-Replace the example value with a private secret of your own.
+Use a strong, private value for "JWT_SECRET". Do not commit your real ".env" file to GitHub.
 
-The application uses "JWT_SECRET" to sign and verify authentication tokens.
+4. Configure PostgreSQL
 
-Do not upload ".env" files or private secrets to a public GitHub repository.
+Check "db.js" and make sure the PostgreSQL connection settings match your local database. The current configuration uses:
 
-5. Start the Server
+- Host: "127.0.0.1"
+- Port: "5432"
+- Username: "postgres"
+- Database: "crossfit-store"
+
+Make sure the database exists and PostgreSQL is running.
+
+5. Start the server
 
 node server.js
 
 The API runs at:
 
-"http://localhost:5000"
+http://localhost:5000
 
-Make sure the database connection succeeds before testing the endpoints.
+When the database connection succeeds, the server logs a success message and starts listening on port "5000".
 
 API Endpoints
 
-Authentication Routes
+General
 
-Method| Endpoint| Description
-POST| "/auth/register"| Register a new user
-POST| "/auth/login"| Log in and receive a JWT token
-
-User Routes
-
-Method| Endpoint| Description
-GET| "/user/me"| Get the authenticated user's information
-GET| "/user/dashboard"| Access the user dashboard
-
-Product Routes
-
-Method| Endpoint| Description
-GET| "/products"| Get the product list
-GET| "/products/:id"| Get a product by ID
-POST| "/products"| Create a product
-PUT| "/products/:id"| Update a product
-DELETE| "/products/:id"| Delete a product
-
-Other Routes
-
-Method| Endpoint| Description
-GET| "/protected"| Access a protected endpoint
+Method| Endpoint| Description| Authentication
+GET| "/"| Welcome message| Not required
+GET| "/protected"| Test JWT authentication| Required
 
 Authentication
 
-Protected routes require a valid JWT token.
+Method| Endpoint| Description| Authentication
+POST| "/auth/register"| Register a new user| Not required
+POST| "/auth/login"| Log in an existing user| Not required
 
-After logging in, copy the token from the response.
+Users
 
-In Postman:
+Method| Endpoint| Description| Authentication
+GET| "/user/me"| Get the authenticated user's profile| Required
+GET| "/user/dashboard"| Access the regular user's dashboard| Required; "user" role only
 
-1. Open the request.
-2. Select the Authorization tab.
-3. Choose Bearer Token.
-4. Paste the token into the token field.
+Products
 
-The server verifies the token before allowing access to protected routes.
+Method| Endpoint| Description| Authentication
+GET| "/products"| Get all products| "user" or "admin"
+GET| "/products/:id"| Get a product by ID| "user" or "admin"
+POST| "/products"| Create a product| "admin" only
+PUT| "/products/:id"| Update a product| "admin" only
+DELETE| "/products/:id"| Delete a product| "admin" only
 
-Tokens issued by the registration and login routes expire after one hour.
+Authentication and Authorization
 
-Role-Based Authorization
+The API uses JSON Web Tokens (JWT) for authentication.
 
-The API uses role-based authorization to restrict access to certain operations.
+After successful registration or login, the API returns a token that expires after one hour.
 
-- Product listing and viewing a single product require a valid JWT token and the "user" or "admin" role.
-- Creating, updating, and deleting products require a valid JWT token and the "admin" role.
-- New users registered through the public registration route receive the "user" role by default.
-- Requests without a valid token may return "401 Unauthorized".
-- Requests from authenticated users without sufficient permissions may return "403 Forbidden".
+For protected routes, send the token in the HTTP request header:
 
-Postman Examples
+Authorization: Bearer YOUR_TOKEN
 
-Use the following base URL:
+Roles
 
-"http://localhost:5000"
+- "user": Can view products, view their own profile, and access the user dashboard.
+- "admin": Can view products and create, update, or delete products.
+- The "/user/dashboard" route specifically allows the "user" role only.
 
-1. Register a User
+Newly registered accounts are assigned the "user" role by the registration route.
+
+Testing with Postman
+
+Set the request body format to Body → raw → JSON for the examples below.
+
+1. Register a user
 
 Request
 
-POST /auth/register
+POST http://localhost:5000/auth/register
 Content-Type: application/json
-
-Example body
 
 {
   "name": "Test User",
@@ -181,177 +153,201 @@ Example body
   "password": "ExamplePassword123"
 }
 
-Use a new email address when registering.
+Expected success: "201 Created"
 
-Expected results:
+The response contains a success message, a JWT token, and the user's "id", "name", "email", and "role".
 
-- "201 Created" when registration succeeds. The response contains a success message, a JWT token, and the user's "id", "name", "email", and "role".
-- "400 Bad Request" if required fields are missing or the password is shorter than 8 characters.
-- "409 Conflict" if the email address is already registered.
+Possible error responses:
 
-2. Log In
+- "400 Bad Request": Required fields are missing or the password has fewer than 8 characters.
+- "409 Conflict": The email is already registered.
+
+2. Log in
 
 Request
 
-POST /auth/login
+POST http://localhost:5000/auth/login
 Content-Type: application/json
-
-Example body
 
 {
   "email": "test@example.com",
   "password": "ExamplePassword123"
 }
 
-Expected results:
+Expected success: "200 OK"
 
-- "200 OK" when login succeeds. The response contains a success message, a JWT token, and the user's "id", "name", "email", and "role".
-- "400 Bad Request" if the email or password is missing.
-- "401 Unauthorized" if the email or password is incorrect.
+The response contains a success message, a JWT token, and the user's public information.
 
-Use the returned token for protected requests.
+Possible errors:
 
-3. Get Products
+- "400 Bad Request": Email or password is missing or invalid in format.
+- "401 Unauthorized": The email or password is incorrect.
 
-Request
-
-GET /products
-
-Include a valid Bearer token for a user with the "user" or "admin" role.
-
-Expected result: "200 OK" with a JSON array containing the available products.
-
-The returned array depends on the products stored in the database.
-
-4. Get a Product by ID
+3. Test the protected route
 
 Request
 
-GET /products/1
+GET http://localhost:5000/protected
+Authorization: Bearer YOUR_TOKEN
 
-Replace "1" with the target product ID.
+Expected success: "200 OK".
 
-Include a valid Bearer token for a user with the "user" or "admin" role.
+Possible error: "401 Unauthorized" if the token is missing, invalid, or expired.
 
-Expected results:
-
-- "200 OK" if the product exists.
-- "400 Bad Request" if the product ID is invalid.
-- "404 Not Found" if the product does not exist.
-
-5. Create a Product
+4. Get the current user's profile
 
 Request
 
-POST /products
+GET http://localhost:5000/user/me
+Authorization: Bearer YOUR_TOKEN
+
+Expected success: "200 OK".
+
+The response includes the user's "id", "name", "email", and "role".
+
+Possible errors:
+
+- "401 Unauthorized": The token is missing, invalid, or expired.
+- "404 Not Found": The user does not exist.
+
+5. Access the user dashboard
+
+Request
+
+GET http://localhost:5000/user/dashboard
+Authorization: Bearer YOUR_TOKEN
+
+Expected success for a "user" role: "200 OK".
+
+A user with a different role receives "403 Forbidden".
+
+6. Get all products
+
+Request
+
+GET http://localhost:5000/products
+Authorization: Bearer YOUR_TOKEN
+
+Expected success: "200 OK", returning an array of products.
+
+Both "user" and "admin" roles are allowed.
+
+7. Get a product by ID
+
+Request
+
+GET http://localhost:5000/products/1
+Authorization: Bearer YOUR_TOKEN
+
+Possible responses:
+
+- "200 OK": Product found.
+- "400 Bad Request": Invalid product ID.
+- "404 Not Found": Product does not exist.
+- "401 Unauthorized": Missing, invalid, or expired token.
+
+8. Create a product
+
+Request
+
+POST http://localhost:5000/products
+Authorization: Bearer ADMIN_TOKEN
 Content-Type: application/json
 
-Example body
-
 {
-  "name": "Training Dumbbell",
-  "price": 500,
-  "description": "Dumbbell for strength training",
+  "name": "Dumbbell",
+  "description": "Adjustable dumbbell for strength training",
+  "price": 1200,
   "quantity": 10,
-  "category": "Equipment"
+  "category": "Strength Equipment"
 }
 
-The "name" and "price" fields are required. The "description", "quantity", and "category" fields are optional in the product creation route. If "quantity" is omitted, it defaults to "0".
+Expected success: "201 Created".
 
-Include a valid Bearer token for an account with the "admin" role.
+The response contains a success message and the saved product.
 
-Expected results:
+Validation rules:
 
-- "201 Created" when the product is created successfully. The response contains a success message and the saved product.
-- "400 Bad Request" if the name or price is invalid, or if the quantity is not a non-negative integer.
-- "401 Unauthorized" if authentication is missing or invalid.
-- "403 Forbidden" if the user does not have the required role.
+- "name" must be a non-empty string.
+- "price" is required and must be a valid non-negative number.
+- "quantity", if provided, must be a non-negative integer.
+- If "quantity" is omitted, it defaults to "0".
 
-6. Update a Product
+Possible errors include "400 Bad Request", "401 Unauthorized", and "403 Forbidden".
+
+9. Update a product
 
 Request
 
-PUT /products/1
+PUT http://localhost:5000/products/1
+Authorization: Bearer ADMIN_TOKEN
 Content-Type: application/json
 
-Replace "1" with the target product ID.
-
-Example body
+Example body:
 
 {
-  "name": "Updated Training Dumbbell",
-  "price": 550,
-  "quantity": 15
+  "name": "Updated Dumbbell",
+  "price": 1350,
+  "quantity": 8
 }
 
-Include a valid Bearer token for an account with the "admin" role.
+Expected success: "200 OK", returning a success message and the updated product.
 
-Expected results:
+Possible errors include "400 Bad Request", "401 Unauthorized", "403 Forbidden", and "404 Not Found".
 
-- "200 OK" when the product is updated successfully. The response contains a success message and the updated product.
-- "400 Bad Request" if the ID or provided field values are invalid.
-- "404 Not Found" if the product does not exist.
-- "401 Unauthorized" if authentication is missing or invalid.
-- "403 Forbidden" if the user does not have the required role.
-
-7. Delete a Product
+10. Delete a product
 
 Request
 
-DELETE /products/1
+DELETE http://localhost:5000/products/1
+Authorization: Bearer ADMIN_TOKEN
 
-Replace "1" with the target product ID.
+Expected success: "200 OK", returning a success message.
 
-Include a valid Bearer token for an account with the "admin" role.
-
-Expected results:
-
-- "200 OK" when deletion succeeds. The response contains a success message.
-- "400 Bad Request" if the product ID is invalid.
-- "404 Not Found" if the product does not exist.
-- "401 Unauthorized" if authentication is missing or invalid.
-- "403 Forbidden" if the user does not have the required role.
+Possible errors include "400 Bad Request", "401 Unauthorized", "403 Forbidden", and "404 Not Found".
 
 HTTP Status Codes
 
-Status Code| Meaning
-"200"| OK
-"201"| Created
-"400"| Bad Request
-"401"| Unauthorized
-"403"| Forbidden
-"404"| Not Found
-"409"| Conflict
-"500"| Internal Server Error
-
-The status codes returned by individual routes depend on the request and the route implementation. Unexpected server errors are passed to the centralized error handler.
+Status| Meaning
+"200 OK"| Request completed successfully
+"201 Created"| Resource created successfully
+"400 Bad Request"| Invalid input or request
+"401 Unauthorized"| Authentication is missing or invalid
+"403 Forbidden"| Authenticated user lacks permission
+"404 Not Found"| Requested resource or route was not found
+"409 Conflict"| Email is already registered
+"500 Internal Server Error"| Unexpected server error
 
 Error Handling
 
-The API includes centralized error handling for request failures and unexpected server errors.
+The API uses centralized error handling for errors passed to the error middleware.
 
-Clients should check the HTTP status code and response message to understand why a request failed.
+General error responses have this structure:
 
-Database Notes
+{
+  "success": false,
+  "message": "Internal server error"
+}
 
-The project uses TypeORM to connect to PostgreSQL.
+When an error has a specific "statusCode", the middleware uses that status code. If no status code is provided, it defaults to "500".
 
-The current configuration uses:
-
-synchronize: true
-
-This allows TypeORM to synchronize the configured entities with the database schema.
-
-For production environments, use a controlled migration strategy instead.
+Some authentication, authorization, validation, and not-found responses are returned directly by their route handlers or middleware and may use a different JSON response structure.
 
 Security Notes
 
-- Never publish database passwords or JWT secrets.
-- Keep ".env" out of version control.
-- Use strong passwords.
-- Protect routes that require authentication and authorization.
-- Avoid exposing sensitive error details in production.
+- Passwords are hashed with bcrypt before being stored.
+- Passwords are not included in registration or login responses.
+- JWTs are signed using "JWT_SECRET".
+- Protected endpoints require a valid token.
+- Administrative product operations require the "admin" role.
+- Keep ".env" private and never commit secrets to version control.
+
+Database Notes
+
+TypeORM is used to interact with PostgreSQL. Check "db.js" and the entity files if you need to adjust the database configuration or model definitions.
+
+If TypeORM schema synchronization is enabled in the current configuration, use it carefully outside development environments.
 
 Author
 
-Developed as a backend API project to practice REST API development, authentication, authorization, database integration, and error handling.
+Tasbih Rakha
