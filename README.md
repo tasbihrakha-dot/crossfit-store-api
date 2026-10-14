@@ -52,12 +52,12 @@ Before running the project, install:
 
 Installation and Setup
 
-1. Clone the repository
+1. Clone the Repository
 
 git clone https://github.com/tasbihrakha-dot/crossfit-store-api.git
 cd crossfit-store-api
 
-2. Install dependencies
+2. Install Dependencies
 
 npm install
 
@@ -81,7 +81,7 @@ Make sure PostgreSQL is running and that the connection credentials in "db.js" m
 
 Important: The current version does not read database connection settings from ".env".
 
-4. Configure environment variables
+4. Configure Environment Variables
 
 Create a ".env" file in the project root.
 
@@ -89,13 +89,13 @@ Add:
 
 JWT_SECRET=your_private_jwt_secret
 
-Replace the example with a private secret of your own.
+Replace the example value with a private secret of your own.
 
 The application uses "JWT_SECRET" to sign and verify authentication tokens.
 
 Do not upload ".env" files or private secrets to a public GitHub repository.
 
-5. Start the server
+5. Start the Server
 
 node server.js
 
@@ -107,7 +107,7 @@ Make sure the database connection succeeds before testing the endpoints.
 
 API Endpoints
 
-Authentication
+Authentication Routes
 
 Method| Endpoint| Description
 POST| "/auth/register"| Register a new user
@@ -153,8 +153,10 @@ Role-Based Authorization
 The API uses role-based authorization to restrict access to certain operations.
 
 - Authenticated users can access routes permitted to their role.
-- Product creation, updating, and deletion require the authorized role configured in the application.
-- Requests without sufficient permissions return "403 Forbidden".
+- Product listing and viewing a single product require a valid Bearer token and an allowed role.
+- Product creation, updating, and deletion require the role configured for those operations in the application.
+- Requests without a valid token may return "401 Unauthorized".
+- Requests from authenticated users without sufficient permissions may return "403 Forbidden".
 
 Postman Examples
 
@@ -205,6 +207,8 @@ Request
 
 GET /products
 
+Include a valid Bearer token for an authenticated user with an allowed role.
+
 Expected result: "200 OK" with a JSON response containing the available products.
 
 The exact JSON structure depends on the route implementation and database contents.
@@ -217,10 +221,14 @@ GET /products/1
 
 Replace "1" with an existing product ID.
 
+Include a valid Bearer token for an authenticated user with an allowed role.
+
 Expected results:
 
 - "200 OK" if the product exists.
 - "404 Not Found" if the product does not exist.
+
+The exact status code for invalid IDs depends on the route implementation.
 
 5. Create a Product
 
@@ -255,9 +263,15 @@ Request
 PUT /products/1
 Content-Type: application/json
 
-Provide the fields required by the route in the JSON body, and include a valid Bearer token with the required permissions.
+Replace "1" with the target product ID.
+
+Provide the fields required by the route in the JSON body.
+
+Include a valid Bearer token with the required permissions.
 
 Expected result: A success response if the product exists and the request is valid and authorized.
+
+The exact response status and body depend on the route implementation.
 
 7. Delete a Product
 
@@ -271,18 +285,20 @@ Include a valid Bearer token with the required permissions.
 
 Expected result: A success response if deletion succeeds.
 
+The exact response status and body depend on the route implementation.
+
 HTTP Status Codes
 
 Status Code| Meaning
-200| OK
-201| Created, when returned by the route
-400| Bad Request
-401| Unauthorized
-403| Forbidden
-404| Not Found
-500| Internal Server Error
+"200"| OK
+"201"| Created
+"400"| Bad Request
+"401"| Unauthorized
+"403"| Forbidden
+"404"| Not Found
+"500"| Internal Server Error
 
-The exact status code and response body depend on the individual route implementation.
+Not every route necessarily returns every status code listed above. The actual status code and response body depend on the individual route implementation.
 
 Error Handling
 
@@ -298,7 +314,9 @@ The current configuration uses:
 
 synchronize: true
 
-This allows TypeORM to synchronize the configured entities with the database schema. For production environments, use a controlled migration strategy instead.
+This allows TypeORM to synchronize the configured entities with the database schema.
+
+For production environments, use a controlled migration strategy instead.
 
 Security Notes
 
